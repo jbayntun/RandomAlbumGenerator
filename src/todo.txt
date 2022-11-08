@@ -1,0 +1,27 @@
+Display stuff
+ - get size of screen, make it into 6 equal parts (or whatever)
+    - reserve some space for gallery name
+ - each part displays a picture, make sure the max dimension of the picture fits within the screen
+ - every $interval, swap to a new picture (again ensuring size is legit)
+
+
+Photoloop
+- from $root_dir, find all child_dirs with folders
+    - for each child_dir
+        - if has child_dir TOP, mark TOP = true in album, remove top from list to explore
+        - capture paths to photos and TOP photos
+        - capture name of directory for display
+        - add album to LIST_TO_SHOW
+    
+At interval, grab new album
+    - from album, get required amount of photos, weighted 70% or so to TOP
+        - remember, might be no TOP
+    - remove album from LIST_TO_SHOW and add to SHOWED
+
+when all albums have been shown, SHOWED becomes LIST_TO_SHOW, SHOWED is reset to nothing
+
+
+need to define:
+    interval
+    images per album
+    percent top
