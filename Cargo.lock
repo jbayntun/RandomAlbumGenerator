@@ -37,6 +37,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.66"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "216261ddc8289130e551ddcd5ce8a064710c0d064a4d2895c67151c92b5443f6"
+
+[[package]]
 name = "arboard"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -747,10 +753,14 @@ dependencies = [
 name = "image_play"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "eframe",
  "egui",
  "egui_extras",
  "image",
+ "log",
+ "nu-glob",
+ "thiserror",
 ]
 
 [[package]]
@@ -1045,6 +1055,12 @@ dependencies = [
  "memchr",
  "minimal-lexical",
 ]
+
+[[package]]
+name = "nu-glob"
+version = "0.71.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e1d0c9dad7a0238d4d4a56062bcd874bb60d9fd927d4b2683d152c678fc0ede"
 
 [[package]]
 name = "num-integer"

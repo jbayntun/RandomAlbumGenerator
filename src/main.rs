@@ -3,10 +3,7 @@
 
 // This sample seems to move all over in the last few version changes...
 
-use std::{
-    thread,
-    time::{self, Instant},
-};
+use std::time::Instant;
 
 use eframe::egui;
 use egui_extras::RetainedImage;
@@ -24,18 +21,49 @@ fn main() {
 }
 
 struct MyApp {
-    image: RetainedImage,
+    images: Vec<RetainedImage>,
     instant: Instant,
 }
 
 impl Default for MyApp {
     fn default() -> Self {
         Self {
-            image: RetainedImage::from_image_bytes(
-                "test_image",
-                include_bytes!("/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0998.png"),
-            )
-            .unwrap(),
+            // "/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0998.png"
+            images: vec![
+                // TODO get rid of these unwraps, should just try a new image, if fail 2 times in an album, try a new album
+                // think about how i can group in methods to get what I want.
+                // also, possibly the "try" ? operator
+                RetainedImage::from_image_bytes(
+                    "test_image",
+                    include_bytes!("/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0990.png"),
+                )
+                .unwrap(),
+                RetainedImage::from_image_bytes(
+                    "test_image",
+                    include_bytes!("/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0991.png"),
+                )
+                .unwrap(),
+                RetainedImage::from_image_bytes(
+                    "test_image",
+                    include_bytes!("/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0992.png"),
+                )
+                .unwrap(),
+                RetainedImage::from_image_bytes(
+                    "test_image",
+                    include_bytes!("/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0993.png"),
+                )
+                .unwrap(),
+                RetainedImage::from_image_bytes(
+                    "test_image",
+                    include_bytes!("/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0995.png"),
+                )
+                .unwrap(),
+                RetainedImage::from_image_bytes(
+                    "test_image",
+                    include_bytes!("/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0996.png"),
+                )
+                .unwrap(),
+            ],
             instant: Instant::now(),
         }
     }
@@ -45,22 +73,55 @@ impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("This is an image:");
-            self.image.show_scaled(ui, 0.3);
 
-            ui.heading("This is an image you can click:");
-            ui.add(egui::ImageButton::new(
-                self.image.texture_id(ctx),
-                self.image.size_vec2() * 0.3,
-            ));
+            egui::Grid::new("some_unique_id").show(ui, |ui| {
+                for (pos, i) in self.images.iter().enumerate() {
+                    ui.add(egui::Image::new(i.texture_id(ctx), i.size_vec2() * 0.5));
+
+                    if (pos + 1) % 3 == 0 {
+                        ui.end_row();
+                    }
+                }
+
+                // ui.add(egui::Image::new(
+                //     self.image.texture_id(ctx),
+                //     self.image.size_vec2() * 0.3,
+                // ));
+                // ui.label("First row, second column");
+                // ui.end_row();
+
+                // ui.label("Second row, first column");
+                // ui.label("Second row, second column");
+                // ui.label("Second row, third column");
+                // ui.end_row();
+
+                // ui.horizontal(|ui| {
+                //     ui.label("Same");
+                //     ui.label("cell");
+                // });
+                // ui.label("Third row, second column");
+                // ui.end_row();
+            });
+
+            // self.image.show_scaled(ui, 0.3);
+
+            // ui.heading("This is an image you can click:");
+            // ui.add(egui::ImageButton::new(
+            //     self.image.texture_id(ctx),
+            //     self.image.size_vec2() * 0.3,
+            // ));
         });
         // println!("windowinfo {:?}", _frame.info().window_info.size);
         // println!("duration {}", self.instant.elapsed().as_secs_f32());
-        if self.instant.elapsed().as_secs() > 4 {
-            self.image = RetainedImage::from_image_bytes(
-                "test_image",
-                include_bytes!("/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0999.png"),
-            )
-            .unwrap();
-        }
+
+        // can update images
+
+        // if self.instant.elapsed().as_secs() > 4 {
+        //     self.image = RetainedImage::from_image_bytes(
+        //         "test_image",
+        //         include_bytes!("/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0999.png"),
+        //     )
+        //     .unwrap();
+        // }
     }
 }

@@ -25,3 +25,6 @@ need to define:
     interval
     images per album
     percent top
+
+Rules:
+    - top folders cannot have child albums
