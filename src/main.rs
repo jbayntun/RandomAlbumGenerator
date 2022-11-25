@@ -3,10 +3,12 @@
 
 // This sample seems to move all over in the last few version changes...
 
+use std::fs;
 use std::time::Instant;
 
 use eframe::egui;
 use egui_extras::RetainedImage;
+use image_play::{get_albums, get_randoms_from_album, Album};
 
 fn main() {
     let options = eframe::NativeOptions {
@@ -22,49 +24,44 @@ fn main() {
 
 struct MyApp {
     images: Vec<RetainedImage>,
+    albums: Vec<Album>,
+    current_album: Album,
     instant: Instant,
+}
+
+impl MyApp {
+    fn load_pics(&mut self) {
+        for pic_path in get_randoms_from_album(&self.current_album, 6) {
+            self.images.clear();
+            let pic =
+                RetainedImage::from_image_bytes("test", &fs::read(pic_path).unwrap()[..]).unwrap();
+            self.images.push(pic);
+        }
+    }
 }
 
 impl Default for MyApp {
     fn default() -> Self {
+        let mut albums = get_albums(
+            "/Users/jeffb/Library/Mobile Documents/com~apple~CloudDocs/rust_basic/image_play/test_items/pics"
+        ).unwrap();
+
+        let mut images = Vec::new();
+
+        let curr = albums.pop().unwrap();
+
+        for pic_path in get_randoms_from_album(&curr, 6) {
+            println!("pic path: {}", pic_path);
+            let pic =
+                RetainedImage::from_image_bytes("test", &fs::read(pic_path).unwrap()[..]).unwrap();
+            images.push(pic);
+        }
+
         Self {
-            // "/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0998.png"
-            images: vec![
-                // TODO get rid of these unwraps, should just try a new image, if fail 2 times in an album, try a new album
-                // think about how i can group in methods to get what I want.
-                // also, possibly the "try" ? operator
-                RetainedImage::from_image_bytes(
-                    "test_image",
-                    include_bytes!("/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0990.png"),
-                )
-                .unwrap(),
-                RetainedImage::from_image_bytes(
-                    "test_image",
-                    include_bytes!("/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0991.png"),
-                )
-                .unwrap(),
-                RetainedImage::from_image_bytes(
-                    "test_image",
-                    include_bytes!("/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0992.png"),
-                )
-                .unwrap(),
-                RetainedImage::from_image_bytes(
-                    "test_image",
-                    include_bytes!("/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0993.png"),
-                )
-                .unwrap(),
-                RetainedImage::from_image_bytes(
-                    "test_image",
-                    include_bytes!("/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0995.png"),
-                )
-                .unwrap(),
-                RetainedImage::from_image_bytes(
-                    "test_image",
-                    include_bytes!("/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0996.png"),
-                )
-                .unwrap(),
-            ],
+            images: images,
+            albums: albums,
             instant: Instant::now(),
+            current_album: curr,
         }
     }
 }
@@ -72,7 +69,12 @@ impl Default for MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("This is an image:");
+            if self.instant.elapsed().as_secs() > 5 {
+                self.load_pics();
+                self.instant = Instant::now();
+            }
+
+            ui.heading(self.current_album.name.to_owned());
 
             egui::Grid::new("some_unique_id").show(ui, |ui| {
                 for (pos, i) in self.images.iter().enumerate() {
