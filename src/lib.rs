@@ -2,7 +2,7 @@ use log::debug;
 use math::round;
 use rand::seq::SliceRandom;
 use std::ffi::OsStr;
-use std::fs::DirEntry;
+use std::fs::{self, DirEntry};
 use std::path::Path;
 
 use anyhow::Result;
@@ -11,7 +11,7 @@ use thiserror::Error;
 
 #[derive(Debug)]
 pub struct Album {
-    name: String,
+    pub name: String,
     photos: Vec<String>,
     top_photos: Vec<String>,
 }
@@ -23,7 +23,7 @@ pub enum AlbumError {
     InvalidRoot,
 }
 
-static IMAGE_TYPES: [&str; 3] = [".png", ".jpg", ".jpeg"];
+static IMAGE_TYPES: [&str; 1] = [".png"];
 
 /// Returns a specified amount of random photos from an album.
 pub fn get_randoms_from_album(album: &Album, count: usize) -> Vec<String> {
@@ -104,9 +104,11 @@ fn add_photos(path: &str, photos: &mut Vec<String>) {
     for e in IMAGE_TYPES {
         let pat = path.to_owned() + "/*" + e;
         for entry in glob(&pat).expect("Failed to read glob pattern") {
-            if let Ok(entry) = entry {
-                if let Some(pic) = entry.file_name().and_then(OsStr::to_str) {
-                    photos.push(pic.to_string());
+            if let Ok(path_buf) = entry {
+                if let Ok(cannonical) = fs::canonicalize(path_buf) {
+                    if let Some(pic_str) = cannonical.to_str() {
+                        photos.push(pic_str.to_string());
+                    }
                 }
             }
         }
