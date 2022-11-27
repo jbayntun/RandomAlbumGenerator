@@ -4,9 +4,10 @@
 // This sample seems to move all over in the last few version changes...
 
 use std::fs;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use eframe::egui;
+use egui::vec2;
 use egui_extras::RetainedImage;
 use image_play::{get_albums, get_randoms_from_album, Album};
 
@@ -15,6 +16,7 @@ fn main() {
         fullscreen: true,
         ..Default::default()
     };
+
     eframe::run_native(
         "Show an image with eframe/egui",
         options,
@@ -22,8 +24,13 @@ fn main() {
     );
 }
 
+struct AppImage {
+    image: RetainedImage,
+    name: String,
+}
+
 struct MyApp {
-    images: Vec<RetainedImage>,
+    images: Vec<AppImage>,
     albums: Vec<Album>,
     current_album: Album,
     instant: Instant,
@@ -31,11 +38,17 @@ struct MyApp {
 
 impl MyApp {
     fn load_pics(&mut self) {
-        for pic_path in get_randoms_from_album(&self.current_album, 6) {
-            self.images.clear();
-            let pic =
-                RetainedImage::from_image_bytes("test", &fs::read(pic_path).unwrap()[..]).unwrap();
-            self.images.push(pic);
+        self.images.clear();
+        for image in get_randoms_from_album(&self.current_album, 6) {
+            let pic = RetainedImage::from_image_bytes(
+                "test",
+                &fs::read(image.path.to_owned()).unwrap()[..],
+            )
+            .unwrap();
+            self.images.push(AppImage {
+                image: pic,
+                name: image.name.to_owned(),
+            });
         }
     }
 }
@@ -46,84 +59,64 @@ impl Default for MyApp {
             "/Users/jeffb/Library/Mobile Documents/com~apple~CloudDocs/rust_basic/image_play/test_items/pics"
         ).unwrap();
 
-        let mut images = Vec::new();
-
         let curr = albums.pop().unwrap();
 
-        for pic_path in get_randoms_from_album(&curr, 6) {
-            println!("pic path: {}", pic_path);
-            let pic =
-                RetainedImage::from_image_bytes("test", &fs::read(pic_path).unwrap()[..]).unwrap();
-            images.push(pic);
-        }
-
-        Self {
-            images: images,
+        let mut app = Self {
+            images: Vec::new(),
             albums: albums,
             instant: Instant::now(),
             current_album: curr,
-        }
+        };
+
+        app.load_pics();
+        app
     }
 }
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            if self.instant.elapsed().as_secs() > 5 {
+            // TODO magic numbers, at least make a refresh time constant and subtract from
+            // it for the if check.
+            ctx.request_repaint_after(Duration::new(3, 0));
+            if self.instant.elapsed().as_millis() > 2990 {
+                println!("getting new images!");
                 self.load_pics();
                 self.instant = Instant::now();
             }
+
+            // TODO need to scale this automatically based on number of images.
+            let max_height = ctx.available_rect().height() / 2.0;
+            let max_width = ctx.available_rect().width() / 3.0;
+            let max_size = vec2(max_width, max_height);
+
+            let mut x_pos: f32 = 0.0;
+            let mut y_pos: f32 = 0.0;
 
             ui.heading(self.current_album.name.to_owned());
 
             egui::Grid::new("some_unique_id").show(ui, |ui| {
                 for (pos, i) in self.images.iter().enumerate() {
-                    ui.add(egui::Image::new(i.texture_id(ctx), i.size_vec2() * 0.5));
+                    let w = egui::Window::new(i.name.to_owned())
+                        .fixed_size(max_size)
+                        .fixed_pos((x_pos, y_pos))
+                        .show(ctx, |ui| {
+                            //ui.label("Hello World!");
+                            ui.add(egui::Image::new(
+                                i.image.texture_id(ctx),
+                                // TODO do something better to scale the images
+                                i.image.size_vec2() * 0.3,
+                            ));
+                        });
 
+                    x_pos += max_width;
                     if (pos + 1) % 3 == 0 {
                         ui.end_row();
+                        x_pos = 0.0;
+                        y_pos += max_height;
                     }
                 }
-
-                // ui.add(egui::Image::new(
-                //     self.image.texture_id(ctx),
-                //     self.image.size_vec2() * 0.3,
-                // ));
-                // ui.label("First row, second column");
-                // ui.end_row();
-
-                // ui.label("Second row, first column");
-                // ui.label("Second row, second column");
-                // ui.label("Second row, third column");
-                // ui.end_row();
-
-                // ui.horizontal(|ui| {
-                //     ui.label("Same");
-                //     ui.label("cell");
-                // });
-                // ui.label("Third row, second column");
-                // ui.end_row();
             });
-
-            // self.image.show_scaled(ui, 0.3);
-
-            // ui.heading("This is an image you can click:");
-            // ui.add(egui::ImageButton::new(
-            //     self.image.texture_id(ctx),
-            //     self.image.size_vec2() * 0.3,
-            // ));
         });
-        // println!("windowinfo {:?}", _frame.info().window_info.size);
-        // println!("duration {}", self.instant.elapsed().as_secs_f32());
-
-        // can update images
-
-        // if self.instant.elapsed().as_secs() > 4 {
-        //     self.image = RetainedImage::from_image_bytes(
-        //         "test_image",
-        //         include_bytes!("/Users/jeffb/Desktop/Eastern Canada/Ottawa/IMG_0999.png"),
-        //     )
-        //     .unwrap();
-        // }
     }
 }

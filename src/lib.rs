@@ -10,10 +10,16 @@ use nu_glob::glob;
 use thiserror::Error;
 
 #[derive(Debug)]
+pub struct Image {
+    pub name: String,
+    pub path: String,
+}
+
+#[derive(Debug)]
 pub struct Album {
     pub name: String,
-    photos: Vec<String>,
-    top_photos: Vec<String>,
+    photos: Vec<Image>,
+    top_photos: Vec<Image>,
 }
 
 #[derive(Debug, Error)]
@@ -23,19 +29,19 @@ pub enum AlbumError {
     InvalidRoot,
 }
 
-static IMAGE_TYPES: [&str; 1] = [".png"];
+static IMAGE_TYPES: [&str; 3] = [".png", ".jpeg", ".jpg"];
 
 /// Returns a specified amount of random photos from an album.
-pub fn get_randoms_from_album(album: &Album, count: usize) -> Vec<String> {
-    let mut result: Vec<String> = Vec::new();
+pub fn get_randoms_from_album(album: &Album, count: usize) -> Vec<&Image> {
+    let mut result: Vec<&Image> = Vec::new();
     let top_target = round::half_up(0.75 * count as f64, 0) as usize;
 
     for pic in album.top_photos[..].choose_multiple(&mut rand::thread_rng(), top_target) {
-        result.push(pic.to_string());
+        result.push(pic);
     }
 
     for pic in album.photos[..].choose_multiple(&mut rand::thread_rng(), count - result.len()) {
-        result.push(pic.to_string());
+        result.push(pic);
     }
 
     result
@@ -55,8 +61,8 @@ pub fn get_albums(root_dir: &str) -> Result<Vec<Album>, AlbumError> {
 
     loop {
         if let Some(curr_path) = paths_to_check.pop() {
-            let mut photos: Vec<String> = Vec::new();
-            let mut top_photos: Vec<String> = Vec::new();
+            let mut photos: Vec<Image> = Vec::new();
+            let mut top_photos: Vec<Image> = Vec::new();
 
             add_photos(&curr_path, &mut photos);
 
@@ -100,14 +106,19 @@ pub fn get_albums(root_dir: &str) -> Result<Vec<Album>, AlbumError> {
 }
 
 /// adds all photos (the path of) in the directory to the photos vector.
-fn add_photos(path: &str, photos: &mut Vec<String>) {
+fn add_photos(path: &str, photos: &mut Vec<Image>) {
     for e in IMAGE_TYPES {
         let pat = path.to_owned() + "/*" + e;
         for entry in glob(&pat).expect("Failed to read glob pattern") {
             if let Ok(path_buf) = entry {
                 if let Ok(cannonical) = fs::canonicalize(path_buf) {
                     if let Some(pic_str) = cannonical.to_str() {
-                        photos.push(pic_str.to_string());
+                        if let Some(file_name) = osstr_to_str(cannonical.file_name()) {
+                            photos.push(Image {
+                                path: pic_str.to_string(),
+                                name: file_name.to_string(),
+                            });
+                        }
                     }
                 }
             }
@@ -199,7 +210,7 @@ mod test {
 
     #[test]
     fn adding_photos() {
-        let mut vec: Vec<String> = Vec::new();
+        let mut vec: Vec<Image> = Vec::new();
         add_photos("test_items/Root Album", &mut vec);
         assert_eq!(vec.len(), 5);
     }
