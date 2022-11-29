@@ -85,7 +85,8 @@ impl MyApp {
 impl Default for MyApp {
     fn default() -> Self {
         let mut app = Self {
-            root_dir: "/Users/jeffb/Library/Mobile Documents/com~apple~CloudDocs/rust_basic/image_play/test_items/final_test".to_string(),
+            // TODO make the root dir a parameter or environment variable.
+            root_dir: "test_items/final_test".to_string(),
             images: Vec::new(),
             albums: Vec::new(),
             instant: Instant::now(),
@@ -115,7 +116,8 @@ impl eframe::App for MyApp {
             let max_size = vec2(max_width, max_height);
 
             let mut x_pos: f32 = 0.0;
-            let mut y_pos: f32 = 0.0;
+            // This barely lets the album name be shown, but means there is no margin at the bottom.
+            let mut y_pos: f32 = 30.0;
 
             let album_name = match &self.current_album {
                 None => {
@@ -127,8 +129,6 @@ impl eframe::App for MyApp {
                 Some(album) => album.name.to_owned(),
             };
 
-            // TODO album name not displayed :/
-            // println!("album name: {}", album_name);
             ui.heading(album_name);
 
             egui::Grid::new("some_unique_id").show(ui, |ui| {
