@@ -3,6 +3,8 @@
 
 // This sample seems to move all over in the last few version changes...
 
+use log::debug;
+use rand::prelude::*;
 use std::fs;
 use std::time::{Duration, Instant};
 
@@ -10,6 +12,9 @@ use eframe::egui;
 use egui::vec2;
 use egui_extras::RetainedImage;
 use image_play::{get_albums, get_randoms_from_album, Album};
+
+/// Seconds that an album will be on screen.
+const ROTATION_DURATION: u64 = 10;
 
 fn main() {
     let options = eframe::NativeOptions {
@@ -30,45 +35,62 @@ struct AppImage {
 }
 
 struct MyApp {
+    root_dir: String,
     images: Vec<AppImage>,
     albums: Vec<Album>,
-    current_album: Album,
+    current_album: Option<Album>,
     instant: Instant,
 }
 
 impl MyApp {
+    /// Loads random images as RetainedImage from the album.
     fn load_pics(&mut self) {
         self.images.clear();
-        for image in get_randoms_from_album(&self.current_album, 6) {
-            let pic = RetainedImage::from_image_bytes(
-                "test",
-                &fs::read(image.path.to_owned()).unwrap()[..],
-            )
-            .unwrap();
-            self.images.push(AppImage {
-                image: pic,
-                name: image.name.to_owned(),
-            });
+        match &self.current_album {
+            None => {
+                debug!("Bad things happened, somehow there's no current image.");
+            }
+            Some(album) => {
+                for image in get_randoms_from_album(&album, 6) {
+                    let pic = RetainedImage::from_image_bytes(
+                        "test",
+                        &fs::read(image.path.to_owned()).unwrap()[..],
+                    )
+                    .unwrap();
+                    self.images.push(AppImage {
+                        image: pic,
+                        name: image.name.to_owned(),
+                    });
+                }
+            }
         }
+    }
+
+    fn get_random_album(&mut self) {
+        //if our albums are empty, reload from disc
+        if 0 == self.albums.len() {
+            self.albums = get_albums(&self.root_dir).unwrap();
+        }
+
+        // select a random album and set the current to point at it
+        let i = (0..self.albums.len()).choose(&mut thread_rng()).unwrap();
+        self.current_album = Some(self.albums.swap_remove(i));
+
+        self.load_pics();
     }
 }
 
 impl Default for MyApp {
     fn default() -> Self {
-        let mut albums = get_albums(
-            "/Users/jeffb/Library/Mobile Documents/com~apple~CloudDocs/rust_basic/image_play/test_items/pics"
-        ).unwrap();
-
-        let curr = albums.pop().unwrap();
-
         let mut app = Self {
+            root_dir: "/Users/jeffb/Library/Mobile Documents/com~apple~CloudDocs/rust_basic/image_play/test_items/final_test".to_string(),
             images: Vec::new(),
-            albums: albums,
+            albums: Vec::new(),
             instant: Instant::now(),
-            current_album: curr,
+            current_album: None,
         };
 
-        app.load_pics();
+        app.get_random_album();
         app
     }
 }
@@ -78,10 +100,10 @@ impl eframe::App for MyApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             // TODO magic numbers, at least make a refresh time constant and subtract from
             // it for the if check.
-            ctx.request_repaint_after(Duration::new(3, 0));
-            if self.instant.elapsed().as_millis() > 2990 {
+            ctx.request_repaint_after(Duration::new(ROTATION_DURATION, 0));
+            if self.instant.elapsed().as_millis() > (1000 * ROTATION_DURATION as u128) - 20 {
                 println!("getting new images!");
-                self.load_pics();
+                self.get_random_album();
                 self.instant = Instant::now();
             }
 
@@ -93,7 +115,19 @@ impl eframe::App for MyApp {
             let mut x_pos: f32 = 0.0;
             let mut y_pos: f32 = 0.0;
 
-            ui.heading(self.current_album.name.to_owned());
+            let album_name = match &self.current_album {
+                None => {
+                    debug!(
+                        "Bad things happened, somehow there's no current image in the main loop"
+                    );
+                    "!!! ERROR fake name".to_owned()
+                }
+                Some(album) => album.name.to_owned(),
+            };
+
+            // TODO album name not displayed :/
+            // println!("album name: {}", album_name);
+            ui.heading(album_name);
 
             egui::Grid::new("some_unique_id").show(ui, |ui| {
                 for (pos, i) in self.images.iter().enumerate() {
