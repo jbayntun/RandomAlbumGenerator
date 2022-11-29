@@ -34,17 +34,20 @@ static IMAGE_TYPES: [&str; 3] = [".png", ".jpeg", ".jpg"];
 /// Returns a specified amount of random photos from an album.
 pub fn get_randoms_from_album(album: &Album, count: usize) -> Vec<&Image> {
     let mut result: Vec<&Image> = Vec::new();
+    // TODO consider making the percentage a parameter
     let top_target = round::half_up(0.65 * count as f64, 0) as usize;
 
-    for pic in album.top_photos[..].choose_multiple(&mut rand::thread_rng(), top_target) {
+    let mut rng = rand::thread_rng();
+
+    for pic in album.top_photos[..].choose_multiple(&mut rng, top_target) {
         result.push(pic);
     }
 
-    for pic in album.photos[..].choose_multiple(&mut rand::thread_rng(), count - result.len()) {
+    for pic in album.photos[..].choose_multiple(&mut rng, count - result.len()) {
         result.push(pic);
     }
 
-    result.shuffle(&mut rand::thread_rng());
+    result.shuffle(&mut rng);
     result
 }
 
