@@ -4,7 +4,7 @@
 // This sample seems to move all over in the last few version changes...
 
 use log::debug;
-use rand::prelude::*;
+use rand::seq::IteratorRandom;
 use std::fs;
 use std::time::{Duration, Instant};
 
@@ -23,7 +23,7 @@ fn main() {
     };
 
     eframe::run_native(
-        "Show an image with eframe/egui",
+        "Random Album Generator",
         options,
         Box::new(|_cc| Box::new(MyApp::default())),
     );
@@ -73,7 +73,9 @@ impl MyApp {
         }
 
         // select a random album and set the current to point at it
-        let i = (0..self.albums.len()).choose(&mut thread_rng()).unwrap();
+        let i = (0..self.albums.len())
+            .choose(&mut rand::thread_rng())
+            .unwrap();
         self.current_album = Some(self.albums.swap_remove(i));
 
         self.load_pics();
@@ -131,11 +133,10 @@ impl eframe::App for MyApp {
 
             egui::Grid::new("some_unique_id").show(ui, |ui| {
                 for (pos, i) in self.images.iter().enumerate() {
-                    let w = egui::Window::new(i.name.to_owned())
+                    egui::Window::new(i.name.to_owned())
                         .fixed_size(max_size)
                         .fixed_pos((x_pos, y_pos))
                         .show(ctx, |ui| {
-                            //ui.label("Hello World!");
                             ui.add(egui::Image::new(
                                 i.image.texture_id(ctx),
                                 // TODO do something better to scale the images
